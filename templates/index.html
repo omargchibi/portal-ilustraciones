@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscador de Ilustraciones — Fundación Carlos Slim</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- Navbar Premium -->
+    <header class="navbar">
+        <div class="navbar-container">
+            <div class="logo-area">
+                <span class="logo-icon">▲</span>
+                <div class="logo-text">
+                    <h1>Fundación Carlos Slim</h1>
+                    <span class="subtitle">Catálogo Automatizado de Ilustraciones</span>
+                </div>
+            </div>
+            <div class="nav-actions">
+                <button id="sync-btn" class="btn btn-secondary" title="Sincronizar datos de Google Sheets">
+                    <span class="icon">🔄</span> Sincronizar Sheets
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenedor Principal de la App -->
+    <main class="app-container">
+        <!-- Panel Lateral de Filtros -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Filtros del Catálogo</h2>
+            </div>
+            
+            <div class="filter-group">
+                <label for="search-input">Búsqueda directa</label>
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="Buscar por título, objetos, personajes...">
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label for="project-filter">Colección / Proyecto</label>
+                <select id="project-filter">
+                    <option value="">Todos los proyectos</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="sector-filter">Sector de aplicación</label>
+                <select id="sector-filter">
+                    <option value="">Todos los sectores</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="extension-filter">Tipo de Archivo</label>
+                <select id="extension-filter">
+                    <option value="">Todos los formatos</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="creator-filter">Creador</label>
+                <select id="creator-filter">
+                    <option value="">Todos los creadores</option>
+                </select>
+            </div>
+
+            <div class="sidebar-footer">
+                <p>Registros en caché: <span id="stats-total">0</span></p>
+                <p>Encontrados: <span id="stats-match">0</span></p>
+            </div>
+        </aside>
+
+        <!-- Galería de Ilustraciones -->
+        <section class="gallery-section">
+            <!-- Loader inicial -->
+            <div id="loader" class="loader-container">
+                <div class="spinner"></div>
+                <p>Cargando catálogo desde Google Sheets...</p>
+                <span class="loading-detail">Esto puede demorar unos segundos en la primera ejecución</span>
+            </div>
+
+            <!-- Grid de Ilustraciones -->
+            <div id="gallery-grid" class="gallery-grid hidden">
+                <!-- Se inyecta dinámicamente con JS -->
+            </div>
+
+            <!-- Estado vacío (Sin resultados) -->
+            <div id="empty-state" class="empty-state hidden">
+                <span class="empty-icon">📂</span>
+                <h3>No se encontraron ilustraciones</h3>
+                <p>Intenta cambiar los términos de búsqueda o ajustar los filtros seleccionados.</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal de Vista Detallada -->
+    <div id="detail-modal" class="modal hidden" aria-modal="true" role="dialog">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <button id="close-modal-btn" class="close-button" aria-label="Cerrar modal">&times;</button>
+            
+            <div class="modal-body">
+                <!-- Zona Izquierda: Visualizador de Imagen -->
+                <div class="modal-image-panel">
+                    <div class="img-wrapper">
+                        <img id="modal-img" src="" alt="Vista previa de la ilustración" loading="lazy">
+                        <div id="modal-img-loader" class="image-loader">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                    <div class="image-actions">
+                        <a id="download-orig-btn" href="#" target="_blank" class="btn btn-primary">
+                            <span>🔗</span> Ver Archivo en Drive
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Zona Derecha: Ficha Técnica (IA) -->
+                <div class="modal-info-panel">
+                    <div class="info-header">
+                        <span id="modal-badge-project" class="badge">Proyecto</span>
+                        <h2 id="modal-title">Título de la Ilustración</h2>
+                    </div>
+
+                    <div class="info-scroll-container">
+                        <!-- Metadatos de IA -->
+                        <div class="metadata-section">
+                            <h3>Análisis de Inteligencia Artificial (Gemini)</h3>
+                            
+                            <div class="meta-field">
+                                <span class="field-label">Descripción Sintetizada</span>
+                                <p id="modal-desc-ia" class="field-value">Descripción corta para Drive...</p>
+                            </div>
+
+                            <div class="meta-field">
+                                <span class="field-label">Descripción Detallada</span>
+                                <p id="modal-desc-detallada" class="field-value">Descripción larga...</p>
+                            </div>
+
+                            <div class="meta-row">
+                                <div class="meta-field">
+                                    <span class="field-label">Personajes</span>
+                                    <p id="modal-personajes" class="field-value">Ninguno</p>
+                                </div>
+                                <div class="meta-field">
+                                    <span class="field-label">Objetos de la Escena</span>
+                                    <p id="modal-objetos" class="field-value">Ninguno</p>
+                                </div>
+                            </div>
+
+                            <div class="meta-row">
+                                <div class="meta-field">
+                                    <span class="field-label">Perspectiva</span>
+                                    <p id="modal-perspectiva" class="field-value">-</p>
+                                </div>
+                                <div class="meta-field">
+                                    <span class="field-label">Paleta de Color</span>
+                                    <p id="modal-colores" class="field-value">-</p>
+                                </div>
+                            </div>
+
+                            <div class="meta-field">
+                                <span class="field-label">Nombres/Sinónimos de Búsqueda</span>
+                                <p id="modal-nombres-posibles" class="field-value">-</p>
+                            </div>
+
+                            <div class="meta-field">
+                                <span class="field-label">Textos Detectados en Imagen</span>
+                                <pre id="modal-textos" class="field-value-pre">-</pre>
+                            </div>
+                        </div>
+
+                        <!-- Metadatos del Sistema -->
+                        <div class="metadata-section">
+                            <h3>Ficha de Archivo</h3>
+                            
+                            <div class="meta-row">
+                                <div class="meta-field">
+                                    <span class="field-label">Sector</span>
+                                    <p id="modal-sector" class="field-value">-</p>
+                                </div>
+                                <div class="meta-field">
+                                    <span class="field-label">Formato Original</span>
+                                    <p id="modal-extension" class="field-value">-</p>
+                                </div>
+                            </div>
+
+                            <div class="meta-row">
+                                <div class="meta-field">
+                                    <span class="field-label">Creador</span>
+                                    <p id="modal-creador" class="field-value">-</p>
+                                </div>
+                                <div class="meta-field">
+                                    <span class="field-label">Fecha Modificación</span>
+                                    <p id="modal-fecha" class="field-value">-</p>
+                                </div>
+                            </div>
+
+                            <div class="meta-row">
+                                <div class="meta-field">
+                                    <span class="field-label">Filtro Shutter (Anti-Stock)</span>
+                                    <span id="modal-shutterstock" class="status-indicator">Limpio</span>
+                                </div>
+                                <div class="meta-field">
+                                    <span class="field-label">Origen (Hoja Sheets)</span>
+                                    <p id="modal-origen" class="field-value">-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/script.js"></script>
+</body>
+</html>
