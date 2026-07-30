@@ -276,7 +276,7 @@ def miniatura(image_id):
         from googleapiclient.http import MediaIoBaseDownload
 
         # Descargar los bytes de la imagen desde Google Drive
-        request_media = d_service.files().get_media(fileId=image_id)
+        request_media = d_service.files().get_media(fileId=image_id, supportsAllDrives=True)
         file_buffer = io.BytesIO()
         downloader = MediaIoBaseDownload(file_buffer, request_media)
         
