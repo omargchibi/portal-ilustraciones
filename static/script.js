@@ -7,6 +7,39 @@ let debounceTimer;
 let vistaActual = 'grid'; // 'grid' | 'list'
 let ordenActual = 'relevancia';
 
+// Lista fija de sectores disponibles para el filtro (no se derivan de los datos)
+const SECTORES_DISPONIBLES = [
+    'Educación inicial',
+    'Educación',
+    'Desarrollo humano',
+    'Empleo y capacitación',
+    'Maquinaria y aparatos',
+    'Ciencia y tecnología',
+    'Salud',
+    'Seguridad y prevención',
+    'Industria',
+    'Construcción',
+    'Minería',
+    'Agricultura y apicultura',
+    'Medio ambiente',
+    'Historia',
+    'Cultura',
+    'Geografía',
+    'Comunicación',
+    'Habilidades sociales',
+    'Familia y comunidad',
+    'Inclusión y discapacidad',
+    'Deportes',
+    'Arte',
+    'Entretenimiento',
+    'Redes sociales',
+    'Otro'
+];
+
+// Lista fija de extensiones disponibles para el filtro (no se derivan de los datos)
+const EXTENSIONES_CONOCIDAS = ['.ai', '.pdf', '.jpg', '.png'];
+const EXTENSIONES_DISPONIBLES = [...EXTENSIONES_CONOCIDAS, 'otro'];
+
 // Elementos del DOM
 const loader = document.getElementById('loader');
 const galleryGrid = document.getElementById('gallery-grid');
@@ -32,7 +65,6 @@ const searchInput = document.getElementById('search-input');
 const projectFilter = document.getElementById('project-filter');
 const sectorFilter = document.getElementById('sector-filter');
 const extensionFilter = document.getElementById('extension-filter');
-const creatorFilter = document.getElementById('creator-filter');
 const syncBtn = document.getElementById('sync-btn');
 
 // Modal
@@ -140,33 +172,21 @@ function inicializarFiltros() {
     resetSelect(projectFilter, "Todos los proyectos");
     resetSelect(sectorFilter, "Todos los sectores");
     resetSelect(extensionFilter, "Todos los formatos");
-    resetSelect(creatorFilter, "Todos los creadores");
-    
+
     const proyectos = new Set();
     const sectores = new Set();
-    const extensiones = new Set();
     const creadores = new Set();
-    
+
     todasIlustraciones.forEach(item => {
         if (item.proyecto) proyectos.add(item.proyecto.trim());
         if (item.sector) sectores.add(item.sector.trim());
-        
-        // Determinar extensión legible
-        let ext = item.extension ? item.extension.trim().toLowerCase() : '';
-        if (!ext && item.nombre_archivo) {
-            const partes = item.nombre_archivo.split('.');
-            if (partes.length > 1) ext = '.' + partes.pop().toLowerCase();
-        }
-        if (ext) extensiones.add(ext);
-        
         if (item.creador) creadores.add(item.creador.trim());
     });
     
     // Rellenar selects
     cargarOpcionesSelect(projectFilter, Array.from(proyectos).sort());
-    cargarOpcionesSelect(sectorFilter, Array.from(sectores).sort());
-    cargarOpcionesSelect(extensionFilter, Array.from(extensiones).sort());
-    cargarOpcionesSelect(creatorFilter, Array.from(creadores).sort());
+    cargarOpcionesSelect(sectorFilter, SECTORES_DISPONIBLES);
+    cargarOpcionesSelect(extensionFilter, EXTENSIONES_DISPONIBLES);
 
     renderizarStatsHero({
         total: todasIlustraciones.length,
@@ -205,6 +225,16 @@ function normalizarTexto(texto) {
     return (texto || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
+// El campo "sector" de un \u00edtem puede traer varios sectores separados por coma
+// (ej. "comunicacion, educacion, desarrollo_humano"). Coincide si alguno de ellos
+// corresponde al sector seleccionado en el filtro, sin importar acentos/guiones bajos.
+function sectorCoincide(sectorItem, sectorSeleccionado) {
+    if (!sectorItem) return false;
+    const normalizar = (s) => normalizarTexto(s.replace(/_/g, ' ')).trim();
+    const objetivo = normalizar(sectorSeleccionado);
+    return sectorItem.split(',').some(parte => normalizar(parte) === objetivo);
+}
+
 function actualizarContadorResultados(n) {
     statsMatch.textContent = n;
     toolbarCount.textContent = n;
@@ -238,8 +268,7 @@ function aplicarFiltros() {
     const proyecto = projectFilter.value;
     const sector = sectorFilter.value;
     const formato = extensionFilter.value;
-    const creador = creatorFilter.value;
-    
+
     ilustracionesFiltradas = todasIlustraciones.filter(item => {
         // 1. Filtro de Texto (Buscador universal)
         if (query) {
@@ -259,22 +288,23 @@ function aplicarFiltros() {
         // 2. Filtro de Proyecto
         if (proyecto && item.proyecto !== proyecto) return false;
         
-        // 3. Filtro de Sector
-        if (sector && item.sector !== sector) return false;
+        // 3. Filtro de Sector (coincidencia parcial, el campo puede traer varios sectores)
+        if (sector && !sectorCoincide(item.sector, sector)) return false;
         
-        // 4. Filtro de Formato/Extensión
+        // 4. Filtro de Formato/Extensión (incluye la opción "otro" para formatos fuera de la lista)
         if (formato) {
             let ext = item.extension ? item.extension.trim().toLowerCase() : '';
             if (!ext && item.nombre_archivo) {
                 const partes = item.nombre_archivo.split('.');
                 if (partes.length > 1) ext = '.' + partes.pop().toLowerCase();
             }
-            if (ext !== formato.toLowerCase()) return false;
+            if (formato === 'otro') {
+                if (EXTENSIONES_CONOCIDAS.includes(ext)) return false;
+            } else if (ext !== formato) {
+                return false;
+            }
         }
-        
-        // 5. Filtro de Creador
-        if (creador && item.creador !== creador) return false;
-        
+
         return true;
     });
 
@@ -391,10 +421,13 @@ function crearCardIlustracion(item, index, posicionEnPagina) {
     // Formato o tipo de archivo
     let fileFormat = item.extension ? item.extension.trim().toUpperCase() : 'IMG';
     if (fileFormat.startsWith('.')) fileFormat = fileFormat.slice(1);
-    
+
+    const tieneUrlOriginal = item.url_original && item.url_original !== '#';
+
     card.innerHTML = `
         <div class="card-image-wrapper">
             <span class="card-badge">${fileFormat}</span>
+            <a href="${tieneUrlOriginal ? item.url_original : '#'}" target="_blank" rel="noopener" class="card-download-btn${tieneUrlOriginal ? '' : ' hidden'}" title="Descargar archivo original de Drive" aria-label="Descargar archivo original de Drive">⬇</a>
             <img src="${miniaturaUrl}" alt="${item.titulo_ilustracion}" loading="lazy" class="skeleton">
         </div>
         <div class="card-content">
@@ -419,6 +452,9 @@ function crearCardIlustracion(item, index, posicionEnPagina) {
         imgEl.classList.remove('skeleton');
         imgEl.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23161616"/><text x="50" y="55" font-family="sans-serif" font-size="12" fill="%23656F6A" text-anchor="middle">Sin Vista Previa</text></svg>';
     });
+
+    const downloadBtn = card.querySelector('.card-download-btn');
+    downloadBtn.addEventListener('click', (e) => e.stopPropagation());
 
     card.addEventListener('click', () => abrirDetalle(item));
     revealObserver.observe(card);
@@ -523,7 +559,6 @@ searchInput.addEventListener('input', () => {
 projectFilter.addEventListener('change', aplicarFiltros);
 sectorFilter.addEventListener('change', aplicarFiltros);
 extensionFilter.addEventListener('change', aplicarFiltros);
-creatorFilter.addEventListener('change', aplicarFiltros);
 
 sortSelect.addEventListener('change', () => {
     ordenActual = sortSelect.value;
