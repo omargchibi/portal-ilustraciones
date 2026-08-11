@@ -28,6 +28,34 @@
         </div>
     </header>
 
+    <!-- Hero de Bienvenida -->
+    <section class="hero">
+        <div class="hero-container">
+            <div class="hero-text">
+                <h2 class="hero-title">Catálogo Visual de la Fundación Carlos Slim</h2>
+                <p class="hero-subtitle">Ilustraciones curadas y descritas con inteligencia artificial, listas para tus proyectos institucionales.</p>
+            </div>
+            <div class="hero-stats" id="hero-stats">
+                <div class="hero-stat">
+                    <span class="hero-stat-value" id="hero-stat-total">0</span>
+                    <span class="hero-stat-label">Ilustraciones</span>
+                </div>
+                <div class="hero-stat">
+                    <span class="hero-stat-value" id="hero-stat-projects">0</span>
+                    <span class="hero-stat-label">Proyectos</span>
+                </div>
+                <div class="hero-stat">
+                    <span class="hero-stat-value" id="hero-stat-sectors">0</span>
+                    <span class="hero-stat-label">Sectores</span>
+                </div>
+                <div class="hero-stat">
+                    <span class="hero-stat-value" id="hero-stat-creators">0</span>
+                    <span class="hero-stat-label">Creadores</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Contenedor Principal de la App -->
     <main class="app-container">
         <!-- Panel Lateral de Filtros -->
@@ -79,6 +107,30 @@
 
         <!-- Galería de Ilustraciones -->
         <section class="gallery-section">
+            <!-- Barra de herramientas: contador, orden y vista -->
+            <div class="gallery-toolbar">
+                <div class="toolbar-left">
+                    <span class="results-count">Mostrando <strong id="toolbar-count">0</strong> ilustraciones</span>
+                </div>
+                <div class="toolbar-right">
+                    <div class="sort-control">
+                        <label for="sort-select">Ordenar por</label>
+                        <select id="sort-select">
+                            <option value="relevancia">Relevancia</option>
+                            <option value="fecha-desc">Más recientes</option>
+                            <option value="fecha-asc">Más antiguas</option>
+                            <option value="titulo-asc">Título (A-Z)</option>
+                            <option value="titulo-desc">Título (Z-A)</option>
+                            <option value="proyecto-asc">Proyecto (A-Z)</option>
+                        </select>
+                    </div>
+                    <div class="view-toggle" role="group" aria-label="Cambiar vista">
+                        <button type="button" id="view-grid-btn" class="view-toggle-btn" aria-pressed="true" title="Vista de cuadrícula">▦</button>
+                        <button type="button" id="view-list-btn" class="view-toggle-btn" aria-pressed="false" title="Vista de lista">☰</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Loader inicial -->
             <div id="loader" class="loader-container">
                 <div class="spinner"></div>
@@ -90,6 +142,9 @@
             <div id="gallery-grid" class="gallery-grid hidden">
                 <!-- Se inyecta dinámicamente con JS -->
             </div>
+
+            <!-- Paginación -->
+            <nav id="pagination" class="pagination hidden" aria-label="Paginación de resultados"></nav>
 
             <!-- Estado vacío (Sin resultados) -->
             <div id="empty-state" class="empty-state hidden">

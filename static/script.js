@@ -4,6 +4,8 @@ let ilustracionesFiltradas = [];
 let paginaActual = 1;
 const itemsPorPagina = 40;
 let debounceTimer;
+let vistaActual = 'grid'; // 'grid' | 'list'
+let ordenActual = 'relevancia';
 
 // Elementos del DOM
 const loader = document.getElementById('loader');
@@ -11,6 +13,19 @@ const galleryGrid = document.getElementById('gallery-grid');
 const emptyState = document.getElementById('empty-state');
 const statsTotal = document.getElementById('stats-total');
 const statsMatch = document.getElementById('stats-match');
+
+// Hero
+const heroStatTotal = document.getElementById('hero-stat-total');
+const heroStatProjects = document.getElementById('hero-stat-projects');
+const heroStatSectors = document.getElementById('hero-stat-sectors');
+const heroStatCreators = document.getElementById('hero-stat-creators');
+
+// Toolbar (contador, orden, vista)
+const toolbarCount = document.getElementById('toolbar-count');
+const sortSelect = document.getElementById('sort-select');
+const viewGridBtn = document.getElementById('view-grid-btn');
+const viewListBtn = document.getElementById('view-list-btn');
+const paginationNav = document.getElementById('pagination');
 
 // Filtros
 const searchInput = document.getElementById('search-input');
@@ -61,13 +76,13 @@ async function cargarCatálogo() {
         }
         
         todasIlustraciones = data.ilustraciones || [];
-        ilustracionesFiltradas = [...todasIlustraciones];
-        
+        ilustracionesFiltradas = ordenarIlustraciones([...todasIlustraciones]);
+
         statsTotal.textContent = todasIlustraciones.length;
-        statsMatch.textContent = ilustracionesFiltradas.length;
-        
+        actualizarContadorResultados(ilustracionesFiltradas.length);
+
         inicializarFiltros();
-        renderizarGaleria(true);
+        renderizarGaleria();
     } catch (e) {
         console.error("Error cargando el catálogo:", e);
         alert("Ocurrió un error al intentar cargar los datos desde Google Sheets. Verifica las credenciales.");
@@ -118,6 +133,22 @@ function inicializarFiltros() {
     cargarOpcionesSelect(sectorFilter, Array.from(sectores).sort());
     cargarOpcionesSelect(extensionFilter, Array.from(extensiones).sort());
     cargarOpcionesSelect(creatorFilter, Array.from(creadores).sort());
+
+    renderizarStatsHero({
+        total: todasIlustraciones.length,
+        proyectos: proyectos.size,
+        sectores: sectores.size,
+        creadores: creadores.size
+    });
+}
+
+// --- HERO ---
+
+function renderizarStatsHero(stats) {
+    heroStatTotal.textContent = stats.total;
+    heroStatProjects.textContent = stats.proyectos;
+    heroStatSectors.textContent = stats.sectores;
+    heroStatCreators.textContent = stats.creadores;
 }
 
 function resetSelect(selectEl, defaultText) {
@@ -138,6 +169,34 @@ function cargarOpcionesSelect(selectEl, listaValores) {
 // Función auxiliar para quitar acentos de búsquedas
 function normalizarTexto(texto) {
     return (texto || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+function actualizarContadorResultados(n) {
+    statsMatch.textContent = n;
+    toolbarCount.textContent = n;
+}
+
+// --- ORDENAMIENTO ---
+
+function ordenarIlustraciones(lista) {
+    if (ordenActual === 'relevancia') return lista;
+
+    const copia = [...lista];
+
+    switch (ordenActual) {
+        case 'fecha-desc':
+            return copia.sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
+        case 'fecha-asc':
+            return copia.sort((a, b) => new Date(a.fecha || 0) - new Date(b.fecha || 0));
+        case 'titulo-asc':
+            return copia.sort((a, b) => (a.titulo_ilustracion || '').localeCompare(b.titulo_ilustracion || '', 'es', { sensitivity: 'base' }));
+        case 'titulo-desc':
+            return copia.sort((a, b) => (b.titulo_ilustracion || '').localeCompare(a.titulo_ilustracion || '', 'es', { sensitivity: 'base' }));
+        case 'proyecto-asc':
+            return copia.sort((a, b) => (a.proyecto || '').localeCompare(b.proyecto || '', 'es', { sensitivity: 'base' }));
+        default:
+            return lista;
+    }
 }
 
 function aplicarFiltros() {
@@ -184,22 +243,23 @@ function aplicarFiltros() {
         
         return true;
     });
-    
-    statsMatch.textContent = ilustracionesFiltradas.length;
+
+    ilustracionesFiltradas = ordenarIlustraciones(ilustracionesFiltradas);
+
+    actualizarContadorResultados(ilustracionesFiltradas.length);
     paginaActual = 1;
-    renderizarGaleria(true);
+    renderizarGaleria();
 }
 
 // --- RENDERIZADO DE LA GALERÍA ---
 
-function renderizarGaleria(limpiar = false) {
-    if (limpiar) {
-        galleryGrid.innerHTML = '';
-    }
-    
+function renderizarGaleria() {
+    galleryGrid.innerHTML = '';
+
     if (ilustracionesFiltradas.length === 0) {
         galleryGrid.classList.add('hidden');
         emptyState.classList.remove('hidden');
+        paginationNav.classList.add('hidden');
         return;
     }
     
@@ -218,27 +278,68 @@ function renderizarGaleria(limpiar = false) {
     }
     
     galleryGrid.appendChild(fragmento);
-    
-    // Crear botón "Cargar más" si hay más páginas de registros
-    removerBotonCargarMas();
-    if (fin < ilustracionesFiltradas.length) {
-        const btnCargar = document.createElement('button');
-        btnCargar.id = 'load-more-btn';
-        btnCargar.className = 'btn btn-secondary';
-        btnCargar.style.gridColumn = '1 / -1';
-        btnCargar.style.margin = '2rem auto';
-        btnCargar.textContent = 'Cargar más ilustraciones';
-        btnCargar.addEventListener('click', () => {
-            paginaActual++;
-            renderizarGaleria(false);
-        });
-        galleryGrid.appendChild(btnCargar);
-    }
+
+    renderizarPaginacion();
 }
 
-function removerBotonCargarMas() {
-    const btnPrevio = document.getElementById('load-more-btn');
-    if (btnPrevio) btnPrevio.remove();
+// --- PAGINACIÓN ---
+
+function obtenerRangoPaginas(actual, total) {
+    const rango = [];
+    const ventana = 1; // páginas visibles a cada lado de la actual
+
+    for (let i = 1; i <= total; i++) {
+        if (i === 1 || i === total || (i >= actual - ventana && i <= actual + ventana)) {
+            rango.push(i);
+        } else if (rango[rango.length - 1] !== '...') {
+            rango.push('...');
+        }
+    }
+
+    return rango;
+}
+
+function renderizarPaginacion() {
+    const totalPaginas = Math.ceil(ilustracionesFiltradas.length / itemsPorPagina);
+    paginationNav.innerHTML = '';
+
+    if (totalPaginas <= 1) {
+        paginationNav.classList.add('hidden');
+        return;
+    }
+
+    paginationNav.classList.remove('hidden');
+
+    const irAPagina = (n) => {
+        paginaActual = n;
+        renderizarGaleria();
+        galleryGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    const crearBoton = (texto, disabled, onClick, activo = false) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'page-btn' + (activo ? ' active' : '');
+        btn.textContent = texto;
+        btn.disabled = disabled;
+        if (!activo && !disabled) btn.addEventListener('click', onClick);
+        return btn;
+    };
+
+    paginationNav.appendChild(crearBoton('‹', paginaActual === 1, () => irAPagina(paginaActual - 1)));
+
+    obtenerRangoPaginas(paginaActual, totalPaginas).forEach(item => {
+        if (item === '...') {
+            const span = document.createElement('span');
+            span.className = 'page-ellipsis';
+            span.textContent = '…';
+            paginationNav.appendChild(span);
+        } else {
+            paginationNav.appendChild(crearBoton(item, false, () => irAPagina(item), item === paginaActual));
+        }
+    });
+
+    paginationNav.appendChild(crearBoton('›', paginaActual === totalPaginas, () => irAPagina(paginaActual + 1)));
 }
 
 function crearCardIlustracion(item, index) {
@@ -265,18 +366,23 @@ function crearCardIlustracion(item, index) {
             <span class="badge-tag">${item.proyecto || 'Sin Proyecto'}</span>
             <h3>${item.titulo_ilustracion}</h3>
             <p>${item.descripcion_ia || item.descripcion_manual || 'Sin descripción disponible.'}</p>
+            <div class="card-meta-extra">
+                <span>${fileFormat}</span>
+                <span>${item.fecha || 'Sin fecha'}</span>
+                <span>${item.creador || 'Sin creador'}</span>
+            </div>
             <div class="card-footer">
                 <span>Sector: ${item.sector || 'N/D'}</span>
             </div>
         </div>
     `;
-    
+
     // Quitar animación de esqueleto (skeleton) al terminar de cargar la imagen
     const imgEl = card.querySelector('img');
     imgEl.addEventListener('load', () => imgEl.classList.remove('skeleton'));
     imgEl.addEventListener('error', () => {
         imgEl.classList.remove('skeleton');
-        imgEl.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%231E273E"/><text x="50" y="55" font-family="sans-serif" font-size="12" fill="%236B7280" text-anchor="middle">Sin Vista Previa</text></svg>';
+        imgEl.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23F5F4F1"/><text x="50" y="55" font-family="sans-serif" font-size="12" fill="%238A93A1" text-anchor="middle">Sin Vista Previa</text></svg>';
     });
 
     card.addEventListener('click', () => abrirDetalle(item));
@@ -334,7 +440,7 @@ function abrirDetalle(item) {
     if (item.id_imagen_jpg && item.id_imagen_jpg !== 'N/A') {
         modalImg.src = `/api/miniatura/${item.id_imagen_jpg}`;
     } else {
-        modalImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 100 100"><rect width="100" height="100" fill="%231E273E"/><text x="50" y="55" font-family="sans-serif" font-size="8" fill="%236B7280" text-anchor="middle">Vista previa no disponible</text></svg>';
+        modalImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23F5F4F1"/><text x="50" y="55" font-family="sans-serif" font-size="8" fill="%238A93A1" text-anchor="middle">Vista previa no disponible</text></svg>';
     }
     
     modalImg.onload = () => {
@@ -356,6 +462,21 @@ function cerrarModal() {
     document.body.style.overflow = ''; // Restaurar scroll
 }
 
+// --- VISTA GRID / LISTA ---
+
+function aplicarVista(modo) {
+    vistaActual = modo;
+    localStorage.setItem('vistaGaleria', modo);
+
+    const esLista = modo === 'list';
+    galleryGrid.classList.toggle('view-list', esLista);
+
+    viewGridBtn.classList.toggle('active', !esLista);
+    viewGridBtn.setAttribute('aria-pressed', String(!esLista));
+    viewListBtn.classList.toggle('active', esLista);
+    viewListBtn.setAttribute('aria-pressed', String(esLista));
+}
+
 // --- EVENTOS Y ESCUCHAS ---
 
 searchInput.addEventListener('input', () => {
@@ -367,6 +488,14 @@ projectFilter.addEventListener('change', aplicarFiltros);
 sectorFilter.addEventListener('change', aplicarFiltros);
 extensionFilter.addEventListener('change', aplicarFiltros);
 creatorFilter.addEventListener('change', aplicarFiltros);
+
+sortSelect.addEventListener('change', () => {
+    ordenActual = sortSelect.value;
+    aplicarFiltros();
+});
+
+viewGridBtn.addEventListener('click', () => aplicarVista('grid'));
+viewListBtn.addEventListener('click', () => aplicarVista('list'));
 
 closeModalBtn.addEventListener('click', cerrarModal);
 detailModal.querySelector('.modal-backdrop').addEventListener('click', cerrarModal);
@@ -401,6 +530,9 @@ syncBtn.addEventListener('click', async () => {
         syncBtn.innerHTML = '<span class="icon">🔄</span> Sincronizar Sheets';
     }
 });
+
+// Restaurar preferencia de vista (grid/lista) guardada
+aplicarVista(localStorage.getItem('vistaGaleria') || 'grid');
 
 // Inicializar la carga al entrar a la página
 document.addEventListener('DOMContentLoaded', cargarCatálogo);
