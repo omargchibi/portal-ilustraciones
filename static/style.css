@@ -1,38 +1,40 @@
-/* Paleta de Colores y Variables de Diseño — Teal Profundo / Terracota */
+/* Tema Oscuro — Teal / Mint sobre Negro, inspirado en codecraftsmen.io */
 :root {
-    --bg-main: #F5F4F1;
-    --bg-card: #FFFFFF;
-    --bg-card-hover: #FFFFFF;
-    --bg-sidebar: #FFFFFF;
-    --border-color: rgba(18, 22, 28, 0.10);
-    --border-color-active: rgba(15, 76, 92, 0.45);
+    --bg-main: #0A0A0A;
+    --bg-card: rgba(255, 255, 255, 0.035);
+    --bg-card-hover: rgba(255, 255, 255, 0.06);
+    --bg-sidebar: rgba(255, 255, 255, 0.03);
+    --glass-bg: rgba(255, 255, 255, 0.04);
+    --glass-border: rgba(255, 255, 255, 0.09);
+    --border-color: rgba(255, 255, 255, 0.09);
+    --border-color-active: rgba(24, 174, 145, 0.5);
 
-    --text-primary: #12161C;
-    --text-secondary: #57606F;
-    --text-muted: #8A93A1;
+    --text-primary: #F2F4F3;
+    --text-secondary: #9BA6A1;
+    --text-muted: #656F6A;
 
-    --accent-primary: #0F4C5C;
-    --accent-primary-hover: #0C3D49;
-    --accent-primary-rgb: 15, 76, 92;
-    --accent-secondary: #C87A3B;
-    --accent-secondary-hover: #B06A2F;
-    --accent-secondary-rgb: 200, 122, 59;
+    --accent-primary: #18AE91;
+    --accent-primary-hover: #149A80;
+    --accent-primary-rgb: 24, 174, 145;
+    --accent-secondary: #BFFF9C;
+    --accent-secondary-hover: #A6E682;
+    --accent-secondary-rgb: 191, 255, 156;
 
-    --accent-green: #059669;
-    --accent-green-rgb: 5, 150, 105;
-    --accent-amber: #D97706;
-    --accent-amber-rgb: 217, 119, 6;
-    --accent-red: #DC2626;
-    --accent-red-rgb: 220, 38, 38;
+    --accent-green: #34D399;
+    --accent-green-rgb: 52, 211, 153;
+    --accent-amber: #FBBF24;
+    --accent-amber-rgb: 251, 191, 36;
+    --accent-red: #F87171;
+    --accent-red-rgb: 248, 113, 113;
 
-    --overlay-dark: #12161C;
-    --overlay-dark-soft: rgba(18, 22, 28, 0.85);
+    --overlay-dark: #000000;
+    --overlay-dark-soft: rgba(0, 0, 0, 0.75);
 
     --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
-    --shadow-sm: 0 2px 8px rgba(18, 22, 28, 0.06);
-    --shadow-md: 0 10px 30px rgba(18, 22, 28, 0.10);
-    --shadow-lg: 0 20px 50px rgba(18, 22, 28, 0.18);
+    --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.35);
+    --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.6);
 
     --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -46,7 +48,10 @@
 }
 
 body {
+    position: relative;
     background-color: var(--bg-main);
+    background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.07) 1px, transparent 0);
+    background-size: 28px 28px;
     color: var(--text-primary);
     font-family: var(--font-sans);
     line-height: 1.5;
@@ -54,14 +59,36 @@ body {
     overflow-x: hidden;
 }
 
+/* Resplandor radial fijo detrás del contenido, estilo "glow" tech */
+body::before {
+    content: '';
+    position: fixed;
+    top: -25%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1400px;
+    height: 900px;
+    max-width: 220vw;
+    background: radial-gradient(circle, rgba(var(--accent-primary-rgb), 0.22) 0%, rgba(var(--accent-primary-rgb), 0) 70%);
+    filter: blur(40px);
+    pointer-events: none;
+    z-index: -1;
+}
+
 /* Barra de Navegación */
 .navbar {
-    background-color: var(--bg-sidebar);
-    border-bottom: 1px solid var(--border-color);
+    background-color: var(--glass-bg);
+    border-bottom: 1px solid var(--glass-border);
     position: sticky;
     top: 0;
     z-index: 100;
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: transform var(--transition-normal), opacity var(--transition-normal);
+}
+
+.navbar.nav-hidden {
+    transform: translateY(-100%);
 }
 
 .navbar-container {
@@ -115,6 +142,8 @@ body {
 .sidebar {
     background-color: var(--bg-sidebar);
     border-right: 1px solid var(--border-color);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     padding: 2rem;
     display: flex;
     flex-direction: column;
@@ -148,7 +177,7 @@ body {
 .filter-group input[type="text"],
 .filter-group select {
     width: 100%;
-    background-color: var(--bg-main);
+    background-color: var(--glass-bg);
     border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 0.75rem 1rem;
@@ -162,7 +191,8 @@ body {
 .filter-group input[type="text"]:focus,
 .filter-group select:focus {
     border-color: var(--accent-primary);
-    background-color: #FFFFFF;
+    background-color: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 0 0 3px rgba(var(--accent-primary-rgb), 0.15);
 }
 
 .sidebar-footer {
@@ -183,9 +213,8 @@ body {
 
 /* Hero de Bienvenida */
 .hero {
-    background: linear-gradient(135deg, var(--accent-primary) 0%, #0A3540 100%);
-    color: #FFFFFF;
-    padding: 3rem 2rem;
+    padding: 5rem 2rem 3rem;
+    position: relative;
 }
 
 .hero-container {
@@ -203,20 +232,28 @@ body {
 }
 
 .hero-title {
-    font-size: 2rem;
+    font-size: 2.25rem;
     font-weight: 700;
     letter-spacing: 0.2px;
+    color: var(--text-primary);
 }
 
 .hero-subtitle {
     font-size: 0.95rem;
-    color: rgba(255, 255, 255, 0.72);
+    color: var(--text-secondary);
     margin-top: 0.5rem;
 }
 
 .hero-stats {
     display: flex;
-    gap: 2rem;
+    gap: 1.5rem;
+    background-color: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 16px;
+    padding: 1.25rem 1.75rem;
+    box-shadow: var(--shadow-md);
 }
 
 .hero-stat {
@@ -227,14 +264,14 @@ body {
 .hero-stat-value {
     font-size: 1.75rem;
     font-weight: 700;
-    color: #E8A85C;
+    color: var(--accent-secondary);
 }
 
 .hero-stat-label {
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--text-muted);
 }
 
 /* Sección de la Galería */
@@ -321,12 +358,12 @@ body {
 }
 
 .view-toggle-btn:hover {
-    background-color: rgba(18, 22, 28, 0.04);
+    background-color: rgba(255, 255, 255, 0.07);
 }
 
 .view-toggle-btn.active {
     background-color: var(--accent-primary);
-    color: #FFFFFF;
+    color: var(--overlay-dark);
 }
 
 /* Cargadores y Spinners */
@@ -369,6 +406,8 @@ body {
 .card {
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-radius: 12px;
     overflow: hidden;
     cursor: pointer;
@@ -388,7 +427,7 @@ body {
     position: relative;
     width: 100%;
     padding-top: 75%; /* Ratio 4:3 */
-    background-color: rgba(18, 22, 28, 0.2);
+    background-color: rgba(255, 255, 255, 0.04);
     overflow: hidden;
 }
 
@@ -408,7 +447,7 @@ body {
 
 /* Placeholder de carga (Skeleton) */
 .skeleton {
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.05) 75%);
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.05) 75%);
     background-size: 200% 100%;
     animation: loading-skeleton 1.5s infinite;
 }
@@ -550,22 +589,22 @@ body {
 
 .btn-primary {
     background-color: var(--accent-primary);
-    color: #FFFFFF;
+    color: var(--overlay-dark);
 }
 
 .btn-primary:hover {
     background-color: var(--accent-primary-hover);
-    box-shadow: 0 0 12px rgba(var(--accent-primary-rgb), 0.35);
+    box-shadow: 0 0 16px rgba(var(--accent-primary-rgb), 0.45);
 }
 
 .btn-secondary {
-    background-color: rgba(18, 22, 28, 0.04);
+    background-color: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
 }
 
 .btn-secondary:hover {
-    background-color: rgba(18, 22, 28, 0.08);
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 /* Modales */
@@ -592,7 +631,9 @@ body {
 .modal-content {
     position: relative;
     background-color: var(--bg-sidebar);
-    border: 1px solid var(--border-color);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border: 1px solid var(--glass-border);
     width: 90%;
     max-width: 1100px;
     height: 80vh;
@@ -639,7 +680,7 @@ body {
 
 /* Modal Izquierdo: Visualizador */
 .modal-image-panel {
-    background-color: rgba(0, 0, 0, 0.25);
+    background-color: rgba(0, 0, 0, 0.3);
     border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
@@ -711,8 +752,8 @@ body {
 }
 
 .badge {
-    background-color: var(--accent-secondary);
-    color: white;
+    background-color: var(--accent-primary);
+    color: #FFFFFF;
     padding: 0.25rem 0.6rem;
     border-radius: 6px;
     font-size: 0.75rem;
@@ -767,7 +808,7 @@ body {
 }
 
 .field-value-pre {
-    background-color: rgba(18, 22, 28, 0.03);
+    background-color: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 0.75rem;
@@ -830,15 +871,14 @@ body {
 }
 
 .page-btn:hover:not(:disabled):not(.active) {
-    background-color: rgba(18, 22, 28, 0.04);
+    background-color: rgba(255, 255, 255, 0.07);
     border-color: var(--border-color-active);
 }
 
 .page-btn.active {
     background-color: var(--accent-primary);
     border-color: var(--accent-primary);
-    color: #FFFFFF;
-    cursor: default;
+    color: var(--overlay-dark);
 }
 
 .page-btn:disabled {
@@ -876,6 +916,31 @@ body {
     display: none !important;
 }
 
+/* Animaciones de aparición al hacer scroll */
+.reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+}
+
+.reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.hero-stats.reveal {
+    transition-delay: 0.12s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .reveal {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+}
+
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
     width: 6px;
@@ -887,12 +952,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgba(18, 22, 28, 0.15);
+    background: rgba(255, 255, 255, 0.15);
     border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(18, 22, 28, 0.3);
+    background: rgba(255, 255, 255, 0.3);
 }
 
 /* Responsive Desktops, Tablets y Celulares */

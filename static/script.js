@@ -58,6 +58,40 @@ const modalShutterstock = document.getElementById('modal-shutterstock');
 const modalOrigen = document.getElementById('modal-origen');
 const downloadOrigBtn = document.getElementById('download-orig-btn');
 
+// --- ANIMACIONES DE SCROLL ---
+
+const navbarEl = document.querySelector('.navbar');
+
+const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            revealObserver.unobserve(entry.target);
+        }
+    });
+}, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+let ultimoScrollY = window.scrollY;
+let scrollTicking = false;
+
+function actualizarNavbarEnScroll() {
+    const actualY = window.scrollY;
+    if (actualY > ultimoScrollY && actualY > 120) {
+        navbarEl.classList.add('nav-hidden');
+    } else {
+        navbarEl.classList.remove('nav-hidden');
+    }
+    ultimoScrollY = actualY;
+    scrollTicking = false;
+}
+
+window.addEventListener('scroll', () => {
+    if (!scrollTicking) {
+        requestAnimationFrame(actualizarNavbarEnScroll);
+        scrollTicking = true;
+    }
+}, { passive: true });
+
 // --- CARGA DE DATOS ---
 
 async function cargarCatálogo() {
@@ -273,7 +307,7 @@ function renderizarGaleria() {
     
     for (let i = inicio; i < fin; i++) {
         const item = ilustracionesFiltradas[i];
-        const card = crearCardIlustracion(item, i);
+        const card = crearCardIlustracion(item, i, i - inicio);
         fragmento.appendChild(card);
     }
     
@@ -342,10 +376,11 @@ function renderizarPaginacion() {
     paginationNav.appendChild(crearBoton('›', paginaActual === totalPaginas, () => irAPagina(paginaActual + 1)));
 }
 
-function crearCardIlustracion(item, index) {
+function crearCardIlustracion(item, index, posicionEnPagina) {
     const card = document.createElement('article');
-    card.className = 'card';
+    card.className = 'card reveal';
     card.dataset.index = index;
+    card.style.transitionDelay = ((posicionEnPagina % 12) * 40) + 'ms';
     
     // Definir la url de la miniatura a través del proxy del backend
     let miniaturaUrl = '/static/images/placeholder.png'; // Fallback por defecto
@@ -382,11 +417,12 @@ function crearCardIlustracion(item, index) {
     imgEl.addEventListener('load', () => imgEl.classList.remove('skeleton'));
     imgEl.addEventListener('error', () => {
         imgEl.classList.remove('skeleton');
-        imgEl.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23F5F4F1"/><text x="50" y="55" font-family="sans-serif" font-size="12" fill="%238A93A1" text-anchor="middle">Sin Vista Previa</text></svg>';
+        imgEl.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23161616"/><text x="50" y="55" font-family="sans-serif" font-size="12" fill="%23656F6A" text-anchor="middle">Sin Vista Previa</text></svg>';
     });
 
     card.addEventListener('click', () => abrirDetalle(item));
-    
+    revealObserver.observe(card);
+
     return card;
 }
 
@@ -440,7 +476,7 @@ function abrirDetalle(item) {
     if (item.id_imagen_jpg && item.id_imagen_jpg !== 'N/A') {
         modalImg.src = `/api/miniatura/${item.id_imagen_jpg}`;
     } else {
-        modalImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23F5F4F1"/><text x="50" y="55" font-family="sans-serif" font-size="8" fill="%238A93A1" text-anchor="middle">Vista previa no disponible</text></svg>';
+        modalImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23161616"/><text x="50" y="55" font-family="sans-serif" font-size="8" fill="%23656F6A" text-anchor="middle">Vista previa no disponible</text></svg>';
     }
     
     modalImg.onload = () => {
@@ -533,6 +569,11 @@ syncBtn.addEventListener('click', async () => {
 
 // Restaurar preferencia de vista (grid/lista) guardada
 aplicarVista(localStorage.getItem('vistaGaleria') || 'grid');
+
+// Observar los elementos estáticos con animación de aparición (hero, sidebar)
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+});
 
 // Inicializar la carga al entrar a la página
 document.addEventListener('DOMContentLoaded', cargarCatálogo);
