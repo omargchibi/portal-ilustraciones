@@ -65,6 +65,7 @@ const searchInput = document.getElementById('search-input');
 const projectFilter = document.getElementById('project-filter');
 const sectorFilter = document.getElementById('sector-filter');
 const extensionFilter = document.getElementById('extension-filter');
+const yearFilter = document.getElementById('year-filter');
 const syncBtn = document.getElementById('sync-btn');
 
 // Modal
@@ -89,6 +90,7 @@ const modalFecha = document.getElementById('modal-fecha');
 const modalShutterstock = document.getElementById('modal-shutterstock');
 const modalOrigen = document.getElementById('modal-origen');
 const downloadOrigBtn = document.getElementById('download-orig-btn');
+const openFolderBtn = document.getElementById('open-folder-btn');
 
 // --- ANIMACIONES DE SCROLL ---
 
@@ -172,21 +174,27 @@ function inicializarFiltros() {
     resetSelect(projectFilter, "Todos los proyectos");
     resetSelect(sectorFilter, "Todos los sectores");
     resetSelect(extensionFilter, "Todos los formatos");
+    resetSelect(yearFilter, "Todos los años");
 
     const proyectos = new Set();
     const sectores = new Set();
     const creadores = new Set();
+    const anios = new Set();
 
     todasIlustraciones.forEach(item => {
         if (item.proyecto) proyectos.add(item.proyecto.trim());
         if (item.sector) sectores.add(item.sector.trim());
         if (item.creador) creadores.add(item.creador.trim());
+
+        const fechaParseada = parsearFechaCreacion(item.fecha);
+        if (fechaParseada) anios.add(fechaParseada.getFullYear());
     });
-    
+
     // Rellenar selects
     cargarOpcionesSelect(projectFilter, Array.from(proyectos).sort());
     cargarOpcionesSelect(sectorFilter, SECTORES_DISPONIBLES);
     cargarOpcionesSelect(extensionFilter, EXTENSIONES_DISPONIBLES);
+    cargarOpcionesSelect(yearFilter, Array.from(anios).sort((a, b) => b - a));
 
     renderizarStatsHero({
         total: todasIlustraciones.length,
@@ -240,6 +248,23 @@ function actualizarContadorResultados(n) {
     toolbarCount.textContent = n;
 }
 
+// El Sheet entrega la fecha de creación en formato DD/MM/AAAA (ej. "15/03/2024").
+// new Date(string) es ambiguo con ese formato, así que se parsea manualmente.
+// Devuelve null si el texto no es una fecha reconocible.
+function parsearFechaCreacion(fechaStr) {
+    if (!fechaStr) return null;
+    const partes = fechaStr.trim().split('/');
+    if (partes.length !== 3) return null;
+
+    const dia = parseInt(partes[0], 10);
+    const mes = parseInt(partes[1], 10);
+    const anio = parseInt(partes[2], 10);
+    if (!dia || !mes || !anio) return null;
+
+    const fecha = new Date(anio, mes - 1, dia);
+    return isNaN(fecha.getTime()) ? null : fecha;
+}
+
 // --- ORDENAMIENTO ---
 
 function ordenarIlustraciones(lista) {
@@ -249,9 +274,9 @@ function ordenarIlustraciones(lista) {
 
     switch (ordenActual) {
         case 'fecha-desc':
-            return copia.sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0));
+            return copia.sort((a, b) => (parsearFechaCreacion(b.fecha)?.getTime() || 0) - (parsearFechaCreacion(a.fecha)?.getTime() || 0));
         case 'fecha-asc':
-            return copia.sort((a, b) => new Date(a.fecha || 0) - new Date(b.fecha || 0));
+            return copia.sort((a, b) => (parsearFechaCreacion(a.fecha)?.getTime() || 0) - (parsearFechaCreacion(b.fecha)?.getTime() || 0));
         case 'titulo-asc':
             return copia.sort((a, b) => (a.titulo_ilustracion || '').localeCompare(b.titulo_ilustracion || '', 'es', { sensitivity: 'base' }));
         case 'titulo-desc':
@@ -268,6 +293,7 @@ function aplicarFiltros() {
     const proyecto = projectFilter.value;
     const sector = sectorFilter.value;
     const formato = extensionFilter.value;
+    const anio = yearFilter.value;
 
     ilustracionesFiltradas = todasIlustraciones.filter(item => {
         // 1. Filtro de Texto (Buscador universal)
@@ -303,6 +329,12 @@ function aplicarFiltros() {
             } else if (ext !== formato) {
                 return false;
             }
+        }
+
+        // 5. Filtro de Año de Creación
+        if (anio) {
+            const fechaParseada = parsearFechaCreacion(item.fecha);
+            if (!fechaParseada || String(fechaParseada.getFullYear()) !== anio) return false;
         }
 
         return true;
@@ -423,11 +455,13 @@ function crearCardIlustracion(item, index, posicionEnPagina) {
     if (fileFormat.startsWith('.')) fileFormat = fileFormat.slice(1);
 
     const tieneUrlOriginal = item.url_original && item.url_original !== '#';
+    const tieneLinkCarpeta = item.link_carpeta && item.link_carpeta !== '#';
 
     card.innerHTML = `
         <div class="card-image-wrapper">
             <span class="card-badge">${fileFormat}</span>
             <a href="${tieneUrlOriginal ? item.url_original : '#'}" target="_blank" rel="noopener" class="card-download-btn${tieneUrlOriginal ? '' : ' hidden'}" title="Descargar archivo original de Drive" aria-label="Descargar archivo original de Drive">⬇</a>
+            <a href="${tieneLinkCarpeta ? item.link_carpeta : '#'}" target="_blank" rel="noopener" class="card-folder-btn${tieneLinkCarpeta ? '' : ' hidden'}" title="Abrir carpeta en Drive" aria-label="Abrir carpeta en Drive">📁</a>
             <img src="${miniaturaUrl}" alt="${item.titulo_ilustracion}" loading="lazy" class="skeleton">
         </div>
         <div class="card-content">
@@ -455,6 +489,9 @@ function crearCardIlustracion(item, index, posicionEnPagina) {
 
     const downloadBtn = card.querySelector('.card-download-btn');
     downloadBtn.addEventListener('click', (e) => e.stopPropagation());
+
+    const folderBtn = card.querySelector('.card-folder-btn');
+    folderBtn.addEventListener('click', (e) => e.stopPropagation());
 
     card.addEventListener('click', () => abrirDetalle(item));
     revealObserver.observe(card);
@@ -503,6 +540,14 @@ function abrirDetalle(item) {
         downloadOrigBtn.classList.remove('hidden');
     } else {
         downloadOrigBtn.classList.add('hidden');
+    }
+
+    // Botón para ir a la carpeta contenedora en Drive
+    if (item.link_carpeta && item.link_carpeta !== '#') {
+        openFolderBtn.href = item.link_carpeta;
+        openFolderBtn.classList.remove('hidden');
+    } else {
+        openFolderBtn.classList.add('hidden');
     }
 
     // Configurar carga de imagen en el visualizador del modal
@@ -559,6 +604,7 @@ searchInput.addEventListener('input', () => {
 projectFilter.addEventListener('change', aplicarFiltros);
 sectorFilter.addEventListener('change', aplicarFiltros);
 extensionFilter.addEventListener('change', aplicarFiltros);
+yearFilter.addEventListener('change', aplicarFiltros);
 
 sortSelect.addEventListener('change', () => {
     ordenActual = sortSelect.value;

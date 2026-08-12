@@ -507,6 +507,41 @@ body::before {
     left: 0.4rem;
 }
 
+.card-folder-btn {
+    position: absolute;
+    bottom: 0.6rem;
+    right: 0.6rem;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: 50%;
+    background-color: var(--overlay-dark-soft);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #FFFFFF;
+    font-size: 0.85rem;
+    line-height: 1;
+    text-decoration: none;
+    backdrop-filter: blur(4px);
+    transition: var(--transition-fast);
+}
+
+.card-folder-btn:hover {
+    background-color: var(--accent-primary);
+    color: var(--overlay-dark);
+    border-color: var(--accent-primary);
+}
+
+.gallery-grid.view-list .card-folder-btn {
+    width: 1.6rem;
+    height: 1.6rem;
+    font-size: 0.75rem;
+    bottom: 0.4rem;
+    right: 0.4rem;
+}
+
 .card-content {
     padding: 1.25rem;
     display: flex;
@@ -760,6 +795,8 @@ body::before {
     width: 100%;
     display: flex;
     justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
 }
 
 /* Modal Derecho: Ficha Técnica */

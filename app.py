@@ -179,12 +179,12 @@ def buscar():
 
             logger.info(f"Leyendo hoja: {sheet_name}")
             
-            # Leer los datos de la hoja
+            # Leer los datos de la hoja (rango ampliado para cubrir columnas agregadas al final)
             result = s_service.spreadsheets().values().get(
                 spreadsheetId=SPREADSHEET_ID,
-                range=f"'{sheet_name}'!A:AC"
+                range=f"'{sheet_name}'!A:AZ"
             ).execute()
-            
+
             rows = result.get("values", [])
             if len(rows) < 2:
                 continue # Hoja vacía o solo con cabeceras
@@ -194,9 +194,21 @@ def buscar():
             if len(cabecera) < 8 or cabecera[3] != "Nombre Archivo":
                 continue
 
+            # Ubicar por nombre las columnas agregadas recientemente (su posición puede variar
+            # entre hojas), en vez de asumir un índice fijo. Si no existen en esta hoja, se
+            # usan valores por defecto seguros más abajo.
+            idx_fecha_creacion = cabecera.index("Fecha Creación") if "Fecha Creación" in cabecera else None
+            idx_link_carpeta = cabecera.index("Link Carpeta") if "Link Carpeta" in cabecera else None
+
+            min_columnas = 29
+            if idx_fecha_creacion is not None:
+                min_columnas = max(min_columnas, idx_fecha_creacion + 1)
+            if idx_link_carpeta is not None:
+                min_columnas = max(min_columnas, idx_link_carpeta + 1)
+
             for idx, r in enumerate(rows[1:], start=2):
                 # Completar las columnas vacías con cadenas vacías para evitar IndexError
-                while len(r) < 29:
+                while len(r) < min_columnas:
                     r.append("")
 
                 # Extraer la ID de la miniatura/imagen final JPG de la columna 16 (P)
@@ -215,13 +227,19 @@ def buscar():
                 if not id_imagen_jpg:
                     id_imagen_jpg = id_original
 
+                # Fecha de creación (columna nueva) y link a la carpeta contenedora;
+                # si la hoja aún no tiene estas columnas, se usan valores por defecto seguros
+                fecha_creacion = r[idx_fecha_creacion].strip() if idx_fecha_creacion is not None else r[4]
+                link_carpeta = r[idx_link_carpeta].strip() if idx_link_carpeta is not None else ""
+
                 # Mapear los campos
                 item = {
                     "sheet_origin": sheet_name,
                     "path_completo": r[0],
                     "carpeta": r[1],
                     "nombre_archivo": r[3],
-                    "fecha": r[4],
+                    "fecha": fecha_creacion,
+                    "link_carpeta": link_carpeta,
                     "tamano_mb": r[5],
                     "url_original": r[6],
                     "id_original": id_original,

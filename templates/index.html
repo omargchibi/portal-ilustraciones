@@ -92,6 +92,13 @@
                 </select>
             </div>
 
+            <div class="filter-group">
+                <label for="year-filter">Año de Creación</label>
+                <select id="year-filter">
+                    <option value="">Todos los años</option>
+                </select>
+            </div>
+
             <div class="sidebar-footer">
                 <p>Registros en caché: <span id="stats-total">0</span></p>
                 <p>Encontrados: <span id="stats-match">0</span></p>
@@ -166,6 +173,9 @@
                     <div class="image-actions">
                         <a id="download-orig-btn" href="#" target="_blank" class="btn btn-primary">
                             <span>🔗</span> Ver Archivo en Drive
+                        </a>
+                        <a id="open-folder-btn" href="#" target="_blank" class="btn btn-secondary">
+                            <span>📁</span> Ir a la Carpeta
                         </a>
                     </div>
                 </div>
@@ -246,7 +256,7 @@
                                     <p id="modal-creador" class="field-value">-</p>
                                 </div>
                                 <div class="meta-field">
-                                    <span class="field-label">Fecha Modificación</span>
+                                    <span class="field-label">Fecha de Creación</span>
                                     <p id="modal-fecha" class="field-value">-</p>
                                 </div>
                             </div>
