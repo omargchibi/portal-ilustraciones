@@ -1,14 +1,11 @@
-from flask import Flask, request, send_file, jsonify, render_template, session, redirect, url_for
-from functools import wraps
+from flask import Flask, request, send_file, jsonify, render_template
 import os
 import io
 import json
 import logging
-import secrets
 import fitz  # PyMuPDF
 from PIL import Image
 from cachetools import TTLCache
-from authlib.integrations.flask_client import OAuth
 
 # Configuración de Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -25,36 +22,6 @@ MAX_DIMENSION = 2000
 API_SECRET = os.environ.get("API_SECRET", "bc0b5bcf2b3ca739d427e480823cfa775165efb6d28bc3ca06edcffe94adfbb4")
 SPREADSHEET_ID = os.environ.get("SPREADSHEET_ID", "")
 GOOGLE_CREDENTIALS_JSON = os.environ.get("GOOGLE_CREDENTIALS_JSON", "")
-
-# Login con Google (OAuth de usuario, distinto de la cuenta de servicio de Sheets/Drive)
-GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID", "")
-GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET", "")
-ALLOWED_EMAIL_DOMAIN = os.environ.get("ALLOWED_EMAIL_DOMAIN", "capacitateparaelempleo.org")
-
-# Si no se configura SECRET_KEY en el entorno, se genera una aleatoria al arrancar
-# (las sesiones activas se invalidan en cada reinicio del proceso; para producción
-# conviene fijar SECRET_KEY en las variables de entorno de Hugging Face).
-app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
-
-oauth = OAuth(app)
-oauth.register(
-    name="google",
-    client_id=GOOGLE_OAUTH_CLIENT_ID,
-    client_secret=GOOGLE_OAUTH_CLIENT_SECRET,
-    server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
-    client_kwargs={"scope": "openid email profile"},
-)
-
-
-def login_required(view):
-    @wraps(view)
-    def wrapped(*args, **kwargs):
-        if not session.get("user"):
-            if request.path.startswith("/api/"):
-                return jsonify({"error": "No autenticado"}), 401
-            return redirect(url_for("login_page"))
-        return view(*args, **kwargs)
-    return wrapped
 
 # Caché en memoria para los datos de Google Sheets (TTL: 1 hora, max 1 item ya que solo almacenamos la lista completa)
 sheets_cache = TTLCache(maxsize=10, ttl=3600)
@@ -173,55 +140,14 @@ def convert():
         return jsonify({"error": "Error interno del servidor", "detail": str(e)}), 500
 
 
-# --- LOGIN CON GOOGLE ---
-
-@app.route("/login", methods=["GET"])
-def login_page():
-    if session.get("user"):
-        return redirect(url_for("index"))
-    return render_template("login.html", error=request.args.get("error"))
-
-
-@app.route("/auth/google", methods=["GET"])
-def auth_google():
-    redirect_uri = url_for("auth_callback", _external=True)
-    return oauth.google.authorize_redirect(redirect_uri)
-
-
-@app.route("/auth/callback", methods=["GET"])
-def auth_callback():
-    token = oauth.google.authorize_access_token()
-    userinfo = token.get("userinfo") or {}
-    email = (userinfo.get("email") or "").strip().lower()
-
-    if not email or not email.endswith(f"@{ALLOWED_EMAIL_DOMAIN}"):
-        logger.warning(f"Intento de login rechazado (dominio no autorizado): {email}")
-        return redirect(url_for("login_page", error="dominio_no_autorizado"))
-
-    session["user"] = {
-        "email": email,
-        "name": userinfo.get("name", ""),
-        "picture": userinfo.get("picture", ""),
-    }
-    return redirect(url_for("index"))
-
-
-@app.route("/logout", methods=["GET"])
-def logout():
-    session.clear()
-    return redirect(url_for("login_page"))
-
-
 # --- PORTAL WEB Y BÚSQUEDA ---
 
 @app.route("/", methods=["GET"])
-@login_required
 def index():
-    return render_template("index.html", user=session.get("user"))
+    return render_template("index.html")
 
 
 @app.route("/api/buscar", methods=["GET"])
-@login_required
 def buscar():
     global sheets_cache
     
@@ -349,7 +275,6 @@ def buscar():
 
 
 @app.route("/api/sincronizar", methods=["POST"])
-@login_required
 def sincronizar():
     sheets_cache.clear()
     logger.info("Caché invalidada manualmente por petición POST.")
@@ -357,7 +282,6 @@ def sincronizar():
 
 
 @app.route("/api/miniatura/<image_id>", methods=["GET"])
-@login_required
 def miniatura(image_id):
     if not image_id or image_id == "N/A" or len(image_id) < 5:
         return jsonify({"error": "ID de imagen inválido"}), 400
