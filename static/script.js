@@ -6,6 +6,12 @@ const itemsPorPagina = 40;
 let debounceTimer;
 let vistaActual = 'grid'; // 'grid' | 'list'
 let ordenActual = 'relevancia';
+let colorSeleccionado = null; // hex normalizado (#rrggbb) o null
+
+// Distancia máxima (fórmula "redmean") para considerar que un color de la paleta
+// de un ítem coincide con el color buscado. Valor inicial estimado a ojo: ajustar
+// una vez probado contra los datos reales del Sheet.
+const UMBRAL_DISTANCIA_COLOR = 100;
 
 // Lista fija de sectores disponibles para el filtro (no se derivan de los datos)
 const SECTORES_DISPONIBLES = [
@@ -66,6 +72,10 @@ const projectFilter = document.getElementById('project-filter');
 const sectorFilter = document.getElementById('sector-filter');
 const extensionFilter = document.getElementById('extension-filter');
 const yearFilter = document.getElementById('year-filter');
+const colorFilterTrigger = document.getElementById('color-filter-trigger');
+const colorFilterSwatch = document.getElementById('color-filter-swatch');
+const colorFilterLabel = document.getElementById('color-filter-label');
+const colorFilterClear = document.getElementById('color-filter-clear');
 const syncBtn = document.getElementById('sync-btn');
 
 // Modal
@@ -265,10 +275,59 @@ function parsearFechaCreacion(fechaStr) {
     return isNaN(fecha.getTime()) ? null : fecha;
 }
 
+// --- BÚSQUEDA POR COLOR ---
+
+// El campo "paleta_color" trae colores hex separados por coma o punto y coma
+// (ej. "#3A5F2B, #8B4513, #D4A857"). Se descarta cualquier token que no sea un
+// hex válido, ya que el formato de la columna todavía no está 100% estandarizado.
+function parsearPaletaColor(paletaStr) {
+    if (!paletaStr) return [];
+    return paletaStr
+        .split(/[,;]/)
+        .map(token => token.trim())
+        .filter(token => /^#?[0-9a-f]{6}$/i.test(token))
+        .map(token => '#' + token.replace('#', '').toLowerCase());
+}
+
+function hexARgb(hex) {
+    const valor = hex.replace('#', '');
+    return {
+        r: parseInt(valor.substring(0, 2), 16),
+        g: parseInt(valor.substring(2, 4), 16),
+        b: parseInt(valor.substring(4, 6), 16),
+    };
+}
+
+// Distancia perceptual "redmean" entre dos colores hex (fórmula usada por ImageMagick).
+// Cuanto menor el valor, más parecidos son los colores.
+function distanciaColor(hexA, hexB) {
+    const a = hexARgb(hexA);
+    const b = hexARgb(hexB);
+    const rMedio = (a.r + b.r) / 2;
+    const dR = a.r - b.r;
+    const dG = a.g - b.g;
+    const dB = a.b - b.b;
+    return Math.sqrt((2 + rMedio / 256) * dR * dR + 4 * dG * dG + (2 + (255 - rMedio) / 256) * dB * dB);
+}
+
+// Menor distancia entre el color buscado y cualquiera de los colores de la paleta del ítem.
+function distanciaMinimaColor(item, hexSeleccionado) {
+    const colores = parsearPaletaColor(item.paleta_color);
+    if (colores.length === 0) return Infinity;
+    return Math.min(...colores.map(c => distanciaColor(c, hexSeleccionado)));
+}
+
 // --- ORDENAMIENTO ---
 
 function ordenarIlustraciones(lista) {
-    if (ordenActual === 'relevancia') return lista;
+    if (ordenActual === 'relevancia') {
+        // Sin un orden explícito, si hay un color buscado se muestran primero
+        // las coincidencias más parecidas.
+        if (colorSeleccionado) {
+            return [...lista].sort((a, b) => distanciaMinimaColor(a, colorSeleccionado) - distanciaMinimaColor(b, colorSeleccionado));
+        }
+        return lista;
+    }
 
     const copia = [...lista];
 
@@ -336,6 +395,10 @@ function aplicarFiltros() {
             const fechaParseada = parsearFechaCreacion(item.fecha);
             if (!fechaParseada || String(fechaParseada.getFullYear()) !== anio) return false;
         }
+
+        // 6. Filtro de Color (coincide si algún color de la paleta del ítem está
+        // suficientemente cerca del color seleccionado)
+        if (colorSeleccionado && distanciaMinimaColor(item, colorSeleccionado) > UMBRAL_DISTANCIA_COLOR) return false;
 
         return true;
     });
@@ -594,6 +657,67 @@ function aplicarVista(modo) {
     viewListBtn.setAttribute('aria-pressed', String(esLista));
 }
 
+// --- SELECTOR DE COLOR (Pickr) ---
+
+let pickrColor = null;
+
+function actualizarTriggerColor() {
+    if (colorSeleccionado) {
+        colorFilterSwatch.style.background = colorSeleccionado;
+        colorFilterLabel.textContent = colorSeleccionado;
+        colorFilterClear.hidden = false;
+    } else {
+        colorFilterSwatch.style.background = '';
+        colorFilterLabel.textContent = 'Todos los colores';
+        colorFilterClear.hidden = true;
+    }
+}
+
+function inicializarColorPicker() {
+    pickrColor = Pickr.create({
+        el: '#color-picker-anchor',
+        theme: 'classic',
+        default: '#18ae91',
+        swatches: [
+            '#F87171', '#FB923C', '#FBBF24', '#FACC15', '#A3E635',
+            '#34D399', '#18AE91', '#22D3EE', '#60A5FA', '#818CF8',
+            '#A78BFA', '#E879F9', '#F472B6', '#FFFFFF', '#111111'
+        ],
+        components: {
+            preview: true,
+            opacity: false,
+            hue: true,
+            interaction: {
+                hex: true,
+                input: true,
+                save: true,
+                clear: true,
+            },
+        },
+    });
+
+    pickrColor.on('save', (color) => {
+        colorSeleccionado = color.toHEXA().toString().toLowerCase();
+        actualizarTriggerColor();
+        aplicarFiltros();
+        pickrColor.hide();
+    });
+
+    pickrColor.on('clear', () => {
+        colorSeleccionado = null;
+        actualizarTriggerColor();
+        aplicarFiltros();
+    });
+
+    colorFilterTrigger.addEventListener('click', () => pickrColor.show());
+    colorFilterClear.addEventListener('click', (e) => {
+        e.stopPropagation();
+        colorSeleccionado = null;
+        actualizarTriggerColor();
+        aplicarFiltros();
+    });
+}
+
 // --- EVENTOS Y ESCUCHAS ---
 
 searchInput.addEventListener('input', () => {
@@ -650,6 +774,9 @@ syncBtn.addEventListener('click', async () => {
 
 // Restaurar preferencia de vista (grid/lista) guardada
 aplicarVista(localStorage.getItem('vistaGaleria') || 'grid');
+
+// Inicializar el selector de color (no depende de la carga de datos)
+inicializarColorPicker();
 
 // Observar los elementos estáticos con animación de aparición (hero, sidebar)
 document.addEventListener('DOMContentLoaded', () => {

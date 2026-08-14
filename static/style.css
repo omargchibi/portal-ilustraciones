@@ -229,6 +229,107 @@ body::before {
     box-shadow: 0 0 0 3px rgba(var(--accent-primary-rgb), 0.15);
 }
 
+/* Filtro de Color */
+.color-filter-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background-color: var(--glass-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.65rem 1rem;
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    cursor: pointer;
+    outline: none;
+    transition: var(--transition-fast);
+}
+
+.color-filter-trigger:hover,
+.color-filter-trigger:focus {
+    border-color: var(--accent-primary);
+    background-color: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 0 0 3px rgba(var(--accent-primary-rgb), 0.15);
+}
+
+.color-filter-swatch {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1px solid var(--glass-border);
+    flex-shrink: 0;
+    background:
+        linear-gradient(45deg, transparent 46%, rgba(255, 255, 255, 0.25) 46%, rgba(255, 255, 255, 0.25) 54%, transparent 54%),
+        conic-gradient(#F87171, #FBBF24, #34D399, #18AE91, #60A5FA, #A78BFA, #F87171);
+}
+
+.color-filter-label {
+    flex: 1;
+    text-align: left;
+}
+
+.color-filter-clear {
+    font-size: 1.1rem;
+    line-height: 1;
+    color: var(--text-muted);
+    padding: 0 0.2rem;
+}
+
+.color-filter-clear:hover {
+    color: var(--text-primary);
+}
+
+#color-picker-anchor {
+    width: 0;
+    height: 0;
+}
+
+/* Pickr crea su propio botón circular junto al elemento ancla (como hermano, no
+   como hijo); se oculta porque el filtro usa su propio disparador
+   (#color-filter-trigger) para abrir el picker. */
+.pickr {
+    display: none !important;
+}
+
+/* Tema de Pickr adaptado al vidrio oscuro del sitio */
+.pcr-app {
+    background-color: var(--bg-sidebar) !important;
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    font-family: var(--font-sans);
+}
+
+.pcr-app .pcr-interaction input {
+    background-color: var(--glass-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+}
+
+.pcr-app .pcr-interaction input:focus {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(var(--accent-primary-rgb), 0.15);
+}
+
+.pcr-app .pcr-interaction .pcr-save {
+    background-color: var(--accent-primary) !important;
+    color: var(--overlay-dark);
+}
+
+.pcr-app .pcr-interaction .pcr-clear {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    color: var(--text-primary) !important;
+}
+
+.pcr-app .pcr-interaction .pcr-type.active {
+    background-color: var(--accent-primary) !important;
+}
+
 .sidebar-footer {
     margin-top: auto;
     padding-top: 1rem;

@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/classic.min.css">
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -106,6 +107,16 @@
                 <select id="year-filter">
                     <option value="">Todos los años</option>
                 </select>
+            </div>
+
+            <div class="filter-group">
+                <label>Color</label>
+                <button type="button" id="color-filter-trigger" class="color-filter-trigger">
+                    <span id="color-filter-swatch" class="color-filter-swatch"></span>
+                    <span id="color-filter-label" class="color-filter-label">Todos los colores</span>
+                    <span id="color-filter-clear" class="color-filter-clear" title="Quitar filtro de color" hidden>&times;</span>
+                </button>
+                <div id="color-picker-anchor"></div>
             </div>
 
             <div class="sidebar-footer">
@@ -288,6 +299,7 @@
     </div>
 
     <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js"></script>
     <script src="/static/script.js"></script>
 </body>
 </html>
