@@ -24,6 +24,15 @@
                 <button id="sync-btn" class="btn btn-secondary" title="Sincronizar datos de Google Sheets">
                     <span class="icon">🔄</span> Sincronizar Sheets
                 </button>
+                {% if user %}
+                <div class="user-menu">
+                    {% if user.picture %}
+                    <img src="{{ user.picture }}" alt="{{ user.name or user.email }}" class="user-avatar">
+                    {% endif %}
+                    <span class="user-name">{{ user.name or user.email }}</span>
+                    <a href="/logout" class="btn btn-secondary" title="Cerrar sesión">Salir</a>
+                </div>
+                {% endif %}
             </div>
         </div>
     </header>
