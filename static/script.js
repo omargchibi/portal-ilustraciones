@@ -53,12 +53,6 @@ const emptyState = document.getElementById('empty-state');
 const statsTotal = document.getElementById('stats-total');
 const statsMatch = document.getElementById('stats-match');
 
-// Hero
-const heroStatTotal = document.getElementById('hero-stat-total');
-const heroStatProjects = document.getElementById('hero-stat-projects');
-const heroStatSectors = document.getElementById('hero-stat-sectors');
-const heroStatCreators = document.getElementById('hero-stat-creators');
-
 // Toolbar (contador, orden, vista)
 const toolbarCount = document.getElementById('toolbar-count');
 const sortSelect = document.getElementById('sort-select');
@@ -187,14 +181,10 @@ function inicializarFiltros() {
     resetSelect(yearFilter, "Todos los años");
 
     const proyectos = new Set();
-    const sectores = new Set();
-    const creadores = new Set();
     const anios = new Set();
 
     todasIlustraciones.forEach(item => {
         if (item.proyecto) proyectos.add(item.proyecto.trim());
-        if (item.sector) sectores.add(item.sector.trim());
-        if (item.creador) creadores.add(item.creador.trim());
 
         const fechaParseada = parsearFechaCreacion(item.fecha);
         if (fechaParseada) anios.add(fechaParseada.getFullYear());
@@ -205,22 +195,6 @@ function inicializarFiltros() {
     cargarOpcionesSelect(sectorFilter, SECTORES_DISPONIBLES);
     cargarOpcionesSelect(extensionFilter, EXTENSIONES_DISPONIBLES);
     cargarOpcionesSelect(yearFilter, Array.from(anios).sort((a, b) => b - a));
-
-    renderizarStatsHero({
-        total: todasIlustraciones.length,
-        proyectos: proyectos.size,
-        sectores: sectores.size,
-        creadores: creadores.size
-    });
-}
-
-// --- HERO ---
-
-function renderizarStatsHero(stats) {
-    heroStatTotal.textContent = stats.total;
-    heroStatProjects.textContent = stats.proyectos;
-    heroStatSectors.textContent = stats.sectores;
-    heroStatCreators.textContent = stats.creadores;
 }
 
 function resetSelect(selectEl, defaultText) {
@@ -748,29 +722,31 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// Botón de sincronización manual
-syncBtn.addEventListener('click', async () => {
-    if (!confirm("¿Deseas invalidar la caché de Sheets? La web se recargará con los datos nuevos en unos segundos.")) return;
-    
-    syncBtn.disabled = true;
-    syncBtn.innerHTML = '<span class="icon spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;"></span> Sincronizando...';
-    
-    try {
-        const response = await fetch('/api/sincronizar', { method: 'POST' });
-        const res = await response.json();
-        console.log(res.status);
-        
-        // Volver a cargar el catálogo completo
-        await cargarCatálogo();
-        alert("¡Datos actualizados con éxito!");
-    } catch(e) {
-        console.error(e);
-        alert("Ocurrió un error al intentar sincronizar.");
-    } finally {
-        syncBtn.disabled = false;
-        syncBtn.innerHTML = '<span class="icon">🔄</span> Sincronizar Sheets';
-    }
-});
+// Botón de sincronización manual (solo visible para administradores)
+if (syncBtn) {
+    syncBtn.addEventListener('click', async () => {
+        if (!confirm("¿Deseas invalidar la caché de Sheets? La web se recargará con los datos nuevos en unos segundos.")) return;
+
+        syncBtn.disabled = true;
+        syncBtn.innerHTML = '<span class="icon spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;"></span> Sincronizando...';
+
+        try {
+            const response = await fetch('/api/sincronizar', { method: 'POST' });
+            const res = await response.json();
+            console.log(res.status);
+
+            // Volver a cargar el catálogo completo
+            await cargarCatálogo();
+            alert("¡Datos actualizados con éxito!");
+        } catch(e) {
+            console.error(e);
+            alert("Ocurrió un error al intentar sincronizar.");
+        } finally {
+            syncBtn.disabled = false;
+            syncBtn.innerHTML = '<span class="icon">🔄</span> Sincronizar Sheets';
+        }
+    });
+}
 
 // Restaurar preferencia de vista (grid/lista) guardada
 aplicarVista(localStorage.getItem('vistaGaleria') || 'grid');
@@ -778,7 +754,7 @@ aplicarVista(localStorage.getItem('vistaGaleria') || 'grid');
 // Inicializar el selector de color (no depende de la carga de datos)
 inicializarColorPicker();
 
-// Observar los elementos estáticos con animación de aparición (hero, sidebar)
+// Observar los elementos estáticos con animación de aparición (sidebar)
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
 });

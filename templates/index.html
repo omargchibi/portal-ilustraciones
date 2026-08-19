@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buscador de Ilustraciones — Fundación Carlos Slim</title>
+    <title>Buscador de Ilustraciones — Capacítate para el Empleo</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -17,14 +17,16 @@
             <div class="logo-area">
                 <span class="logo-icon">▲</span>
                 <div class="logo-text">
-                    <h1>Fundación Carlos Slim</h1>
+                    <h1>Capacítate para el Empleo</h1>
                     <span class="subtitle">Catálogo Automatizado de Ilustraciones</span>
                 </div>
             </div>
             <div class="nav-actions">
+                {% if is_admin %}
                 <button id="sync-btn" class="btn btn-secondary" title="Sincronizar datos de Google Sheets">
                     <span class="icon">🔄</span> Sincronizar Sheets
                 </button>
+                {% endif %}
                 {% if user %}
                 <div class="user-menu">
                     {% if user.picture %}
@@ -37,34 +39,6 @@
             </div>
         </div>
     </header>
-
-    <!-- Hero de Bienvenida -->
-    <section class="hero">
-        <div class="hero-container">
-            <div class="hero-text reveal">
-                <h2 class="hero-title">Catálogo Visual de la Fundación Carlos Slim</h2>
-                <p class="hero-subtitle">Ilustraciones curadas y descritas con inteligencia artificial, listas para tus proyectos institucionales.</p>
-            </div>
-            <div class="hero-stats reveal" id="hero-stats">
-                <div class="hero-stat">
-                    <span class="hero-stat-value" id="hero-stat-total">0</span>
-                    <span class="hero-stat-label">Ilustraciones</span>
-                </div>
-                <div class="hero-stat">
-                    <span class="hero-stat-value" id="hero-stat-projects">0</span>
-                    <span class="hero-stat-label">Proyectos</span>
-                </div>
-                <div class="hero-stat">
-                    <span class="hero-stat-value" id="hero-stat-sectors">0</span>
-                    <span class="hero-stat-label">Sectores</span>
-                </div>
-                <div class="hero-stat">
-                    <span class="hero-stat-value" id="hero-stat-creators">0</span>
-                    <span class="hero-stat-label">Creadores</span>
-                </div>
-            </div>
-        </div>
-    </section>
 
     <!-- Contenedor Principal de la App -->
     <main class="app-container">

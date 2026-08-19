@@ -31,6 +31,11 @@ GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID", "")
 GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET", "")
 ALLOWED_EMAIL_DOMAIN = os.environ.get("ALLOWED_EMAIL_DOMAIN", "capacitateparaelempleo.org")
 
+# Correos con permisos de administrador (ej. Sincronizar Sheets), separados por coma
+ADMIN_EMAILS = {
+    e.strip().lower() for e in os.environ.get("ADMIN_EMAILS", "").split(",") if e.strip()
+}
+
 # Si no se configura SECRET_KEY en el entorno, se genera una aleatoria al arrancar
 # (las sesiones activas se invalidan en cada reinicio del proceso; para producción
 # conviene fijar SECRET_KEY en las variables de entorno de Hugging Face).
@@ -53,6 +58,22 @@ def login_required(view):
             if request.path.startswith("/api/"):
                 return jsonify({"error": "No autenticado"}), 401
             return redirect(url_for("login_page"))
+        return view(*args, **kwargs)
+    return wrapped
+
+
+def es_admin():
+    user = session.get("user")
+    return bool(user) and user.get("email", "").lower() in ADMIN_EMAILS
+
+
+def admin_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not session.get("user"):
+            return jsonify({"error": "No autenticado"}), 401
+        if not es_admin():
+            return jsonify({"error": "No autorizado"}), 403
         return view(*args, **kwargs)
     return wrapped
 
@@ -217,7 +238,7 @@ def logout():
 @app.route("/", methods=["GET"])
 @login_required
 def index():
-    return render_template("index.html", user=session.get("user"))
+    return render_template("index.html", user=session.get("user"), is_admin=es_admin())
 
 
 @app.route("/api/buscar", methods=["GET"])
@@ -349,7 +370,7 @@ def buscar():
 
 
 @app.route("/api/sincronizar", methods=["POST"])
-@login_required
+@admin_required
 def sincronizar():
     sheets_cache.clear()
     logger.info("Caché invalidada manualmente por petición POST.")
