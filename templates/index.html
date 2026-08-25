@@ -11,6 +11,12 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+    <!-- Animación de entrada -->
+    <div id="intro-overlay">
+        <canvas id="intro-canvas"></canvas>
+    </div>
+    <script src="/static/matrix-intro.js"></script>
+
     <!-- Navbar Premium -->
     <header class="navbar">
         <div class="navbar-container">
@@ -35,6 +41,8 @@
                     <span class="user-name">{{ user.name or user.email }}</span>
                     <a href="/logout" class="btn btn-secondary" title="Cerrar sesión">Salir</a>
                 </div>
+                {% else %}
+                <a href="/login" class="admin-login-link" title="Acceso de administrador">Iniciar sesión</a>
                 {% endif %}
             </div>
         </div>

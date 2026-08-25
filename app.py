@@ -51,17 +51,6 @@ oauth.register(
 )
 
 
-def login_required(view):
-    @wraps(view)
-    def wrapped(*args, **kwargs):
-        if not session.get("user"):
-            if request.path.startswith("/api/"):
-                return jsonify({"error": "No autenticado"}), 401
-            return redirect(url_for("login_page"))
-        return view(*args, **kwargs)
-    return wrapped
-
-
 def es_admin():
     user = session.get("user")
     return bool(user) and user.get("email", "").lower() in ADMIN_EMAILS
@@ -236,13 +225,11 @@ def logout():
 # --- PORTAL WEB Y BÚSQUEDA ---
 
 @app.route("/", methods=["GET"])
-@login_required
 def index():
     return render_template("index.html", user=session.get("user"), is_admin=es_admin())
 
 
 @app.route("/api/buscar", methods=["GET"])
-@login_required
 def buscar():
     global sheets_cache
     
@@ -378,7 +365,6 @@ def sincronizar():
 
 
 @app.route("/api/miniatura/<image_id>", methods=["GET"])
-@login_required
 def miniatura(image_id):
     if not image_id or image_id == "N/A" or len(image_id) < 5:
         return jsonify({"error": "ID de imagen inválido"}), 400
